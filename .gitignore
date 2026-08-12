@@ -1,0 +1,36 @@
+# ---------- 构建产物 ----------
+/vshell-mcp
+/vshell-mcp.exe
+/bin/
+/dist/
+/generated/
+*.test
+coverage.out
+*.prof
+
+# ---------- 本地配置 / 密钥(不要提交) ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ---------- 日志 / 临时 ----------
+*.log
+/tmp/
+*.tmp
+*.swp
+
+# ---------- IDE / 编辑器 ----------
+.idea/
+.vscode/
+*.suo
+*.sln.ide
+
+# ---------- 系统 / 其它 ----------
+.DS_Store
+Thumbs.db
+__pycache__/
+*.pyc
