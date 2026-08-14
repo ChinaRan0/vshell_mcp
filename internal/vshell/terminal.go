@@ -49,11 +49,14 @@ func (c *Client) wsURL(hostID int, token string) string {
 // readUntilPrompt reads from the socket until the buffer ends in a shell
 // prompt character ('$', '#', '>'), or wait elapses. It returns the buffered
 // bytes and whether a prompt was seen.
+//
+// A single absolute read deadline is set for the whole wait. Gorilla/websocket
+// treats any read error (including a per-read deadline expiry) as permanent,
+// so re-arming a short deadline inside the loop would poison the connection.
 func (t *Terminal) readUntilPrompt(wait time.Duration) ([]byte, bool) {
 	var buf []byte
-	deadline := time.Now().Add(wait)
-	for time.Now().Before(deadline) {
-		t.ws.SetReadDeadline(time.Now().Add(time.Second))
+	t.ws.SetReadDeadline(time.Now().Add(wait))
+	for {
 		_, data, err := t.ws.ReadMessage()
 		if err != nil {
 			return buf, hasPromptSuffix(buf)
@@ -63,7 +66,6 @@ func (t *Terminal) readUntilPrompt(wait time.Duration) ([]byte, bool) {
 			return buf, true
 		}
 	}
-	return buf, hasPromptSuffix(buf)
 }
 
 func hasPromptSuffix(buf []byte) bool {
@@ -72,12 +74,13 @@ func hasPromptSuffix(buf []byte) bool {
 }
 
 // readUntilMarker reads until the needle bytes appear in the stream or wait
-// elapses, returning everything read.
+// elapses, returning everything read. Like readUntilPrompt it sets one absolute
+// read deadline for the whole wait; gorilla/websocket connections are unusable
+// after any read error, so a re-armed per-read deadline would break waiting.
 func (t *Terminal) readUntilMarker(needle []byte, wait time.Duration) []byte {
 	var buf []byte
-	deadline := time.Now().Add(wait)
-	for time.Now().Before(deadline) {
-		t.ws.SetReadDeadline(time.Now().Add(2 * time.Second))
+	t.ws.SetReadDeadline(time.Now().Add(wait))
+	for {
 		_, data, err := t.ws.ReadMessage()
 		if err != nil {
 			return buf
@@ -87,7 +90,6 @@ func (t *Terminal) readUntilMarker(needle []byte, wait time.Duration) []byte {
 			return buf
 		}
 	}
-	return buf
 }
 
 // Exec runs command on the host. If workdir is non-empty the command runs
